@@ -63,11 +63,10 @@
 
             if(!urlInput) { alert("Bhai, pehle link toh daalo!"); return; }
 
-            // API URL Fix: Hugging Face Master API
+            // CORRECT API LINK FROM YOUR SPACE
             const API_URL = "https://iali715807-israj-downloader.hf.space/fetch";
 
-            // Loading state
-            btn.innerText = "WAITING FOR MASTER SERVER...";
+            btn.innerText = "WAITING FOR SERVER...";
             btn.classList.add('loading');
             btn.disabled = true;
             resultDiv.classList.add('hidden');
@@ -75,26 +74,23 @@
             try {
                 const response = await fetch(API_URL, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ url: urlInput })
                 });
 
                 const data = await response.json();
 
                 if (data.status === 'success') {
-                    // Result Display
                     resultDiv.classList.remove('hidden');
                     document.getElementById('dl_link').href = data.url;
                     document.getElementById('thumb').src = data.thumbnail;
                     document.getElementById('resTitle').innerText = data.title;
                 } else {
-                    alert("Koshish fail! Shayad link galat hai ya server busy hai.");
+                    alert("Server error: " + (data.message || "Link check karein."));
                 }
             } catch (err) {
                 console.error(err);
-                alert("Master Server Error! Hugging Face par check karein ki Space 'Running' hai ya nahi.");
+                alert("Server se connection nahi ho pa raha. Hugging Face par check karein ki Space 'Running' hai ya nahi.");
             } finally {
                 btn.innerText = "GET VIDEO INFO";
                 btn.classList.remove('loading');
@@ -104,3 +100,4 @@
     </script>
 </body>
 </html>
+
