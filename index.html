@@ -20,6 +20,8 @@
             from { filter: drop-shadow(0 0 5px #fff); }
             to { filter: drop-shadow(0 0 15px #22c55e); }
         }
+        /* Button loading animation */
+        .loading { cursor: not-allowed; opacity: 0.7; }
     </style>
 </head>
 <body class="bg-black text-white min-h-screen flex flex-col items-center p-6">
@@ -32,7 +34,7 @@
 
     <div class="w-full max-w-2xl glass-green p-8 rounded-3xl">
         <h2 class="text-2xl font-bold mb-4 text-center">Video Link Paste Karein</h2>
-        <input type="text" id="videoUrl" placeholder="https://www.youtube.com/watch?v=..." 
+        <input type="text" id="videoUrl" placeholder="Paste YouTube, Insta, or FB link..." 
                class="w-full p-4 bg-gray-900 border border-green-500 rounded-xl text-white outline-none focus:ring-2 focus:ring-green-400">
         
         <button onclick="fetchVideo()" id="btn" class="w-full mt-6 bg-gradient-to-r from-green-500 to-green-700 p-4 rounded-xl font-bold text-xl hover:scale-105 transition active:scale-95">
@@ -44,8 +46,8 @@
         <img id="thumb" src="" class="w-full md:w-48 rounded-2xl border-2 border-green-400 object-cover shadow-lg">
         <div class="flex-1 flex flex-col justify-between">
             <div>
-                <h3 id="title" class="text-xl font-bold mb-2 text-green-300">Video Mil Gayi!</h3>
-                <p class="text-gray-300 text-sm">Download button par click karke save karein.</p>
+                <h3 id="resTitle" class="text-xl font-bold mb-2 text-green-300">Video Mil Gayi!</h3>
+                <p class="text-gray-300 text-sm">Niche diye gaye Blue button se download karein.</p>
             </div>
             
             <a id="dl_link" href="#" target="_blank" class="bg-gradient-to-r from-blue-600 to-cyan-500 p-4 rounded-xl text-center font-bold text-lg mt-6 shadow-lg shadow-blue-500/50 hover:brightness-110 transition">
@@ -60,14 +62,20 @@
             const btn = document.getElementById('btn');
             const resultDiv = document.getElementById('result');
 
-            if(!url) { alert("Bhai link toh dalo!"); return; }
+            if(!url) { alert("Bhai, pehle link toh daalo!"); return; }
 
-            btn.innerText = "WAIT... FETCHING";
+            // Loading state
+            btn.innerText = "WAITING FOR SERVER...";
+            btn.classList.add('loading');
             btn.disabled = true;
+            resultDiv.classList.add('hidden');
 
             try {
-                // Hum direct API ko call kar rahe hain bina Python ke
-                const response = await fetch('https://api.cobalt.tools/api/json', {
+                // Fix: Using a proxy to bypass GitHub Pages CORS security
+                const proxy = "https://corsproxy.io/?";
+                const apiTarget = "https://api.cobalt.tools/api/json";
+
+                const response = await fetch(proxy + encodeURIComponent(apiTarget), {
                     method: 'POST',
                     headers: {
                         'Accept': 'application/json',
@@ -75,31 +83,43 @@
                     },
                     body: JSON.stringify({
                         url: url,
-                        vQuality: "720"
+                        vQuality: "720",
+                        filenamePattern: "basic"
                     })
                 });
 
                 const data = await response.json();
 
-                if (data.status === 'stream' || data.status === 'redirect') {
-                    // Result dikhao
-                    resultDiv.classList.remove('hidden');
-                    document.getElementById('dl_link').href = data.url;
+                if (data.status === 'stream' || data.status === 'redirect' || data.status === 'picker') {
+                    const finalUrl = data.url || (data.picker && data.picker[0].url);
                     
-                    // Thumbnail ke liye simple logic
+                    // Result Display
+                    resultDiv.classList.remove('hidden');
+                    document.getElementById('dl_link').href = finalUrl;
+                    
+                    // Smart Thumbnail Logic
                     if(url.includes('youtube.com') || url.includes('youtu.be')) {
-                        const vid = url.split('v=')[1]?.split('&')[0] || url.split('/').pop();
+                        let vid = "";
+                        if(url.includes('v=')) vid = url.split('v=')[1].split('&')[0];
+                        else vid = url.split('/').pop().split('?')[0];
                         document.getElementById('thumb').src = `https://img.youtube.com/vi/${vid}/mqdefault.jpg`;
+                        document.getElementById('resTitle').innerText = "YouTube Video Ready!";
+                    } else if(url.includes('instagram.com')) {
+                        document.getElementById('thumb').src = "https://cdn-icons-png.flaticon.com/512/174/174855.png";
+                        document.getElementById('resTitle').innerText = "Instagram Reel Ready!";
                     } else {
                         document.getElementById('thumb').src = "https://cdn-icons-png.flaticon.com/512/1179/1179069.png";
+                        document.getElementById('resTitle').innerText = "Video Found!";
                     }
                 } else {
-                    alert("Koshish fail! Shayad link sahi nahi hai.");
+                    alert("Koshish fail! Shayad ye link private hai ya API busy hai.");
                 }
             } catch (err) {
-                alert("Server Issue! API down ho sakti hai.");
+                console.error(err);
+                alert("Server issue! Ek baar page refresh karke try karein.");
             } finally {
                 btn.innerText = "GET VIDEO INFO";
+                btn.classList.remove('loading');
                 btn.disabled = false;
             }
         }
