@@ -20,7 +20,6 @@
             from { filter: drop-shadow(0 0 5px #fff); }
             to { filter: drop-shadow(0 0 15px #22c55e); }
         }
-        /* Button loading animation */
         .loading { cursor: not-allowed; opacity: 0.7; }
     </style>
 </head>
@@ -50,7 +49,7 @@
                 <p class="text-gray-300 text-sm">Niche diye gaye Blue button se download karein.</p>
             </div>
             
-            <a id="dl_link" href="#" target="_blank" class="bg-gradient-to-r from-blue-600 to-cyan-500 p-4 rounded-xl text-center font-bold text-lg mt-6 shadow-lg shadow-blue-500/50 hover:brightness-110 transition">
+            <a id="dl_link" href="#" target="_blank" rel="noopener noreferrer" class="bg-gradient-to-r from-blue-600 to-cyan-500 p-4 rounded-xl text-center font-bold text-lg mt-6 shadow-lg shadow-blue-500/50 hover:brightness-110 transition">
                 <i class="fas fa-download mr-2"></i> DOWNLOAD NOW
             </a>
         </div>
@@ -58,65 +57,44 @@
 
     <script>
         async function fetchVideo() {
-            const url = document.getElementById('videoUrl').value;
+            const urlInput = document.getElementById('videoUrl').value;
             const btn = document.getElementById('btn');
             const resultDiv = document.getElementById('result');
 
-            if(!url) { alert("Bhai, pehle link toh daalo!"); return; }
+            if(!urlInput) { alert("Bhai, pehle link toh daalo!"); return; }
+
+            // API URL Fix: Hugging Face Master API
+            const API_URL = "https://iali715807-israj-downloader.hf.space/fetch";
 
             // Loading state
-            btn.innerText = "WAITING FOR SERVER...";
+            btn.innerText = "WAITING FOR MASTER SERVER...";
             btn.classList.add('loading');
             btn.disabled = true;
             resultDiv.classList.add('hidden');
 
             try {
-                // Fix: Using a proxy to bypass GitHub Pages CORS security
-                const proxy = "https://corsproxy.io/?";
-                const apiTarget = "https://api.cobalt.tools/api/json";
-
-                const response = await fetch(proxy + encodeURIComponent(apiTarget), {
+                const response = await fetch(API_URL, {
                     method: 'POST',
                     headers: {
-                        'Accept': 'application/json',
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        url: url,
-                        vQuality: "720",
-                        filenamePattern: "basic"
-                    })
+                    body: JSON.stringify({ url: urlInput })
                 });
 
                 const data = await response.json();
 
-                if (data.status === 'stream' || data.status === 'redirect' || data.status === 'picker') {
-                    const finalUrl = data.url || (data.picker && data.picker[0].url);
-                    
+                if (data.status === 'success') {
                     // Result Display
                     resultDiv.classList.remove('hidden');
-                    document.getElementById('dl_link').href = finalUrl;
-                    
-                    // Smart Thumbnail Logic
-                    if(url.includes('youtube.com') || url.includes('youtu.be')) {
-                        let vid = "";
-                        if(url.includes('v=')) vid = url.split('v=')[1].split('&')[0];
-                        else vid = url.split('/').pop().split('?')[0];
-                        document.getElementById('thumb').src = `https://img.youtube.com/vi/${vid}/mqdefault.jpg`;
-                        document.getElementById('resTitle').innerText = "YouTube Video Ready!";
-                    } else if(url.includes('instagram.com')) {
-                        document.getElementById('thumb').src = "https://cdn-icons-png.flaticon.com/512/174/174855.png";
-                        document.getElementById('resTitle').innerText = "Instagram Reel Ready!";
-                    } else {
-                        document.getElementById('thumb').src = "https://cdn-icons-png.flaticon.com/512/1179/1179069.png";
-                        document.getElementById('resTitle').innerText = "Video Found!";
-                    }
+                    document.getElementById('dl_link').href = data.url;
+                    document.getElementById('thumb').src = data.thumbnail;
+                    document.getElementById('resTitle').innerText = data.title;
                 } else {
-                    alert("Koshish fail! Shayad ye link private hai ya API busy hai.");
+                    alert("Koshish fail! Shayad link galat hai ya server busy hai.");
                 }
             } catch (err) {
                 console.error(err);
-                alert("Server issue! Ek baar page refresh karke try karein.");
+                alert("Master Server Error! Hugging Face par check karein ki Space 'Running' hai ya nahi.");
             } finally {
                 btn.innerText = "GET VIDEO INFO";
                 btn.classList.remove('loading');
